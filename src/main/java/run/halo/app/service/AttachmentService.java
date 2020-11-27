@@ -9,10 +9,12 @@ import run.halo.app.model.dto.AttachmentDTO;
 import run.halo.app.model.entity.Attachment;
 import run.halo.app.model.enums.AttachmentType;
 import run.halo.app.model.params.AttachmentQuery;
+import run.halo.app.model.support.UploadResult;
 import run.halo.app.service.base.CrudService;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -92,4 +94,17 @@ public interface AttachmentService extends CrudService<Attachment, Integer> {
      * @return replaced attachments.
      */
     List<Attachment> replaceUrl(@NonNull String oldUrl, @NonNull String newUrl);
+    
+    /**
+     * Get OSS upload token
+     * @return  token message
+     */
+    Map<String, String> getUploadToken();
+    
+    /**
+     * Save upload result
+     * @param uploadResult result
+     * @return  attachment
+     */
+    Attachment saveUpload(UploadResult uploadResult);
 }

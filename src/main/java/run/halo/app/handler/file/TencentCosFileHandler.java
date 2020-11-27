@@ -1,14 +1,20 @@
 package run.halo.app.handler.file;
 
 
+import com.google.common.collect.Maps;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.auth.COSCredentials;
+import com.qcloud.cos.auth.COSSigner;
 import com.qcloud.cos.model.ObjectMetadata;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.region.Region;
+
+import cn.hutool.core.date.DateUtil;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -23,7 +29,15 @@ import run.halo.app.utils.FilenameUtils;
 import run.halo.app.utils.ImageUtils;
 
 import javax.imageio.ImageReader;
+
+import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
 
 import static run.halo.app.model.support.HaloConst.URL_SEPARATOR;
 
@@ -168,5 +182,61 @@ public class TencentCosFileHandler implements FileHandler {
     @Override
     public AttachmentType getAttachmentType() {
         return AttachmentType.TENCENTCOS;
+    }
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        String region = optionService.getByPropertyOfNonNull(TencentCosProperties.COS_REGION).toString();
+        String secretId = optionService.getByPropertyOfNonNull(TencentCosProperties.COS_SECRET_ID).toString();
+        String secretKey = optionService.getByPropertyOfNonNull(TencentCosProperties.COS_SECRET_KEY).toString();
+        String bucketName = optionService.getByPropertyOfNonNull(TencentCosProperties.COS_BUCKET_NAME).toString();
+        String source = optionService.getByPropertyOrDefault(TencentCosProperties.COS_SOURCE, String.class, "");
+        String protocol = optionService.getByPropertyOfNonNull(TencentCosProperties.COS_PROTOCOL).toString();
+        String domain = optionService.getByPropertyOrDefault(TencentCosProperties.COS_DOMAIN, String.class, "");
+        StringBuilder basePath = new StringBuilder();
+    
+        if (StringUtils.isNotEmpty(source)) {
+            basePath.append(source)
+                    .append(URL_SEPARATOR);
+        }
+    
+        StringBuilder host = new StringBuilder(protocol);
+    
+        if (StringUtils.isNotEmpty(domain)) {
+            host.append(domain)
+                    .append(URL_SEPARATOR);
+        } else {
+            host.append(bucketName)
+                    .append(".cos.")
+                    .append(region)
+                    .append(".myqcloud.com")
+                    .append(URL_SEPARATOR);
+        }
+        basePath.append(DateUtil.format(new Date(), "yyyyMMdd")).append(URL_SEPARATOR);
+        String suffixPath = basePath.toString();
+        COSCredentials cred = new BasicCOSCredentials(secretId, secretKey);
+        COSSigner signer = new COSSigner();
+        //设置过期时间为1个小时
+        ZonedDateTime utc = ZonedDateTime.now(ZoneOffset.UTC);
+        Long startTime = utc.toEpochSecond();
+        Long endTime = startTime + 60 * 60;
+        String keyTime = startTime.toString() + ";" + endTime.toString();
+        // 要签名的 key, 生成的签名只能用于对应此 key 的上传
+        SimpleDateFormat dateFormatGmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        dateFormatGmt.setTimeZone(TimeZone.getTimeZone("GMT"));
+        String policy = "{\"expiration\":\"" + dateFormatGmt.format(new Date(endTime * 1000)) +
+                "\",\"conditions\":[{\"q-sign-algorithm\":\"sha1\"},{\"q-ak\":\"" + secretId + "\"},{\"q-sign-time\":\"" +
+                keyTime + "\"},[ \"starts-with\", \"$key\", \"" + basePath + "\" ]]}";
+        String sign = signer.buildPostObjectSignature(secretKey, keyTime, policy);
+        Map<String, String> result = new HashMap<>();
+        result.put("q-sign-algorithm", "sha1");
+        result.put("policyO", policy);
+        result.put("policy", Base64.encodeBase64String(policy.getBytes()));
+        result.put("q-ak", secretId);
+        result.put("q-key-time", keyTime);
+        result.put("q-signature", sign);
+        result.put("basePath", suffixPath);
+        result.put("host", host.toString());
+        return result;
     }
 }

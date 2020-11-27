@@ -1,6 +1,8 @@
 package run.halo.app.handler.file;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ import run.halo.app.utils.HttpClientUtils;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -168,7 +171,12 @@ public class SmmsFileHandler implements FileHandler {
     public AttachmentType getAttachmentType() {
         return AttachmentType.SMMS;
     }
-
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        return Maps.newHashMap();
+    }
+    
     /**
      * Check if the response is response successfully or not.
      *

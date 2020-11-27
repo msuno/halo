@@ -1,6 +1,16 @@
 package run.halo.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import javax.persistence.criteria.Predicate;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import lombok.extern.slf4j.Slf4j;
 import run.halo.app.exception.AlreadyExistsException;
 import run.halo.app.handler.file.FileHandlers;
 import run.halo.app.model.dto.AttachmentDTO;
@@ -24,10 +36,6 @@ import run.halo.app.service.AttachmentService;
 import run.halo.app.service.OptionService;
 import run.halo.app.service.base.AbstractCrudService;
 import run.halo.app.utils.HaloUtils;
-
-import javax.persistence.criteria.Predicate;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * AttachmentService implementation
@@ -234,5 +242,35 @@ public class AttachmentServiceImpl extends AbstractCrudService<Attachment, Integ
     @NonNull
     private AttachmentType getAttachmentType() {
         return Objects.requireNonNull(optionService.getEnumByPropertyOrDefault(AttachmentProperties.ATTACHMENT_TYPE, AttachmentType.class, AttachmentType.LOCAL));
+    }
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        return fileHandlers.getUploadToken(getAttachmentType());
+    }
+    
+    @Override
+    public Attachment saveUpload(UploadResult uploadResult) {
+        AttachmentType attachmentType = getAttachmentType();
+    
+        log.debug("Upload result: [{}] Attachment type: [{}]", uploadResult, attachmentType);
+    
+        // Build attachment
+        Attachment attachment = new Attachment();
+        attachment.setName(uploadResult.getFilename());
+        // Convert separator
+        attachment.setPath(HaloUtils.changeFileSeparatorToUrlSeparator(uploadResult.getFilePath()));
+        attachment.setFileKey(uploadResult.getKey());
+        attachment.setThumbPath(uploadResult.getThumbPath());
+        attachment.setMediaType(uploadResult.getMediaType().toString());
+        attachment.setSuffix(uploadResult.getSuffix());
+        attachment.setWidth(uploadResult.getWidth());
+        attachment.setHeight(uploadResult.getHeight());
+        attachment.setSize(uploadResult.getSize());
+        attachment.setType(attachmentType);
+    
+        log.debug("Creating attachment: [{}]", attachment);
+        
+        return create(attachment);
     }
 }

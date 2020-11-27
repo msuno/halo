@@ -23,10 +23,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static run.halo.app.model.support.HaloConst.FILE_SEPARATOR;
+
+import com.google.common.collect.Maps;
 
 /**
  * Local file handler.
@@ -241,5 +244,10 @@ public class LocalFileHandler implements FileHandler {
             }
         }
         return result;
+    }
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        return Maps.newHashMap();
     }
 }

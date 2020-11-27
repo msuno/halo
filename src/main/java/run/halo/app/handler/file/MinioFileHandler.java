@@ -1,15 +1,27 @@
 package run.halo.app.handler.file;
 
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
-import lombok.extern.slf4j.Slf4j;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.imageio.ImageReader;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
+
+import cn.hutool.core.date.DateUtil;
+import io.minio.MinioClient;
+import io.minio.PostPolicy;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import lombok.extern.slf4j.Slf4j;
 import run.halo.app.exception.FileOperationException;
 import run.halo.app.model.enums.AttachmentType;
 import run.halo.app.model.properties.MinioProperties;
@@ -18,9 +30,6 @@ import run.halo.app.model.support.UploadResult;
 import run.halo.app.service.OptionService;
 import run.halo.app.utils.FilenameUtils;
 import run.halo.app.utils.ImageUtils;
-
-import javax.imageio.ImageReader;
-import java.util.Objects;
 
 
 /**
@@ -127,5 +136,39 @@ public class MinioFileHandler implements FileHandler {
     @Override
     public AttachmentType getAttachmentType() {
         return AttachmentType.MINIO;
+    }
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        // Get config
+        String endpoint = optionService.getByPropertyOfNonNull(MinioProperties.ENDPOINT).toString();
+        String accessKey = optionService.getByPropertyOfNonNull(MinioProperties.ACCESS_KEY).toString();
+        String accessSecret = optionService.getByPropertyOfNonNull(MinioProperties.ACCESS_SECRET).toString();
+        String bucketName = optionService.getByPropertyOfNonNull(MinioProperties.BUCKET_NAME).toString();
+        String source = optionService.getByPropertyOrDefault(MinioProperties.SOURCE, String.class, "");
+    
+        endpoint = StringUtils.appendIfMissing(endpoint, HaloConst.URL_SEPARATOR);
+    
+        MinioClient minioClient = MinioClient.builder()
+                .endpoint(endpoint)
+                .credentials(accessKey, accessSecret)
+                .build();
+        Map<String, String> result = new HashMap<>();
+        try {
+            String basename = FilenameUtils.getBasename(Objects.requireNonNull(DateUtil.format(new Date(), "yyyyMMdd")));
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            String upFilePath = StringUtils.join(StringUtils.isNotBlank(source) ? source + HaloConst.URL_SEPARATOR : "",
+                    basename, "_", timestamp);
+            String filePath = StringUtils.join(endpoint, bucketName, HaloConst.URL_SEPARATOR, upFilePath);
+            String host = StringUtils.join(endpoint, bucketName);
+            PostPolicy policy = new PostPolicy(bucketName, filePath, true, ZonedDateTime.now(ZoneOffset.UTC).plusHours(1));
+            result.putAll(minioClient.presignedPostPolicy(policy));
+            result.put("basePath", upFilePath);
+            result.put("host", host);
+            return result;
+        } catch (Exception e) {
+            log.error("upload file to MINIO failed", e);
+            throw new FileOperationException("获取 MinIO token 失败 ", e).setErrorData(e.getMessage());
+        }
     }
 }

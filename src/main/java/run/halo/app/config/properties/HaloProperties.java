@@ -6,7 +6,6 @@ import run.halo.app.model.enums.Mode;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.List;
 
 import static run.halo.app.model.support.HaloConst.*;
 import static run.halo.app.utils.HaloUtils.ensureSuffix;
@@ -80,18 +79,13 @@ public class HaloProperties {
      */
     private String cache = "memory";
 
-    private List<String> cacheRedisNodes = new ArrayList<>();
+    private ArrayList<String> cacheRedisNodes = new ArrayList<>();
 
     private String cacheRedisPassword = "";
+    
+    private String staticAdminIndex = "https://cdn.jsdelivr.net/gh/msuno/halo-admin@%s/dist/index.html";
+    
+    private String version = "";
 
-    /**
-     * hazelcast cache store impl
-     * memory
-     * level
-     */
-    private List<String> hazelcastMembers = new ArrayList<>();
 
-    private String hazelcastGroupName;
-
-    private int initialBackoffSeconds = 5;
 }

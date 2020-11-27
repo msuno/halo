@@ -1,5 +1,6 @@
 package run.halo.app.handler.file;
 
+import com.google.common.collect.Maps;
 import com.qiniu.common.QiniuException;
 import com.qiniu.http.Response;
 import com.qiniu.storage.BucketManager;
@@ -9,6 +10,8 @@ import com.qiniu.storage.UploadManager;
 import com.qiniu.storage.persistent.FileRecorder;
 import com.qiniu.util.Auth;
 import com.qiniu.util.StringMap;
+
+import cn.hutool.core.date.DateUtil;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +32,11 @@ import run.halo.app.utils.JsonUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import static run.halo.app.handler.file.FileHandler.isImageType;
 import static run.halo.app.model.support.HaloConst.*;
@@ -180,7 +187,46 @@ public class QiniuOssFileHandler implements FileHandler {
     public AttachmentType getAttachmentType() {
         return AttachmentType.QINIUOSS;
     }
-
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        String accessKey = optionService.getByPropertyOfNonNull(QiniuOssProperties.OSS_ACCESS_KEY).toString();
+        String secretKey = optionService.getByPropertyOfNonNull(QiniuOssProperties.OSS_SECRET_KEY).toString();
+        String bucket = optionService.getByPropertyOfNonNull(QiniuOssProperties.OSS_BUCKET).toString();
+        String protocol = optionService.getByPropertyOfNonNull(QiniuOssProperties.OSS_PROTOCOL).toString();
+        String domain = optionService.getByPropertyOfNonNull(QiniuOssProperties.OSS_DOMAIN).toString();
+        String source = optionService.getByPropertyOrDefault(QiniuOssProperties.OSS_SOURCE, String.class, "");
+        String styleRule = optionService.getByPropertyOrDefault(QiniuOssProperties.OSS_STYLE_RULE, String.class, "");
+        Auth auth = Auth.create(accessKey, secretKey);
+        StringBuilder upFilePath = new StringBuilder();
+        if (StringUtils.isNotEmpty(source)) {
+            upFilePath.append(source)
+                    .append(URL_SEPARATOR);
+        }
+        upFilePath.append(DateUtil.format(new Date(), "yyyyMMdd")).append(URL_SEPARATOR);
+        String suffixPath = upFilePath.toString();
+        StringBuilder basePath = new StringBuilder(protocol)
+                .append(domain)
+                .append(URL_SEPARATOR);
+        upFilePath.append("$(fname)");
+        String filePath = StringUtils.join(basePath.toString(), upFilePath.toString());
+        filePath = StringUtils.isBlank(styleRule) ? filePath : filePath + styleRule;
+        StringMap putPolicy = new StringMap();
+        putPolicy.put("returnBody", "{\"key\":\"$(key)\",\"hash\":\"$(etag)\",\"filename\":\"$(fname)\",\"mediaType\":" +
+                "\"$(mimeType)\",\"suffix\":\"$(ext)\",\"size\":$(fsize),\"width\":$(imageInfo.width),\"height\":" +
+                "$(imageInfo.height),\"filePath\":\"" + filePath + "\", \"thumbPath\":\"\"}");
+        putPolicy.put("forceSaveKey", "true");
+        putPolicy.put("saveKey", basePath + UUID.randomUUID().toString().replace("-", "") + "$(ext)");
+        long expireSeconds = 600;
+    
+        String token = auth.uploadToken(bucket, null, expireSeconds, putPolicy);
+    
+        Map<String, String> result = new HashMap<>();
+        result.put("token", token);
+        result.put("basePath", suffixPath);
+        return result;
+    }
+    
     @Data
     @NoArgsConstructor
     private static class PutSet {

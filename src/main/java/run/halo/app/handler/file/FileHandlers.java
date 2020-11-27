@@ -15,6 +15,7 @@ import run.halo.app.model.enums.AttachmentType;
 import run.halo.app.model.support.UploadResult;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -89,5 +90,14 @@ public class FileHandlers {
             throw new FileOperationException("No available file handlers to operate the file").setErrorData(type);
         }
         return handler;
+    }
+    
+    /**
+     * Get OSS upload token
+     * @param attachmentType attachment detail must not be null
+     * @return  token message
+     */
+    public Map<String, String> getUploadToken(AttachmentType attachmentType) {
+        return getSupportedType(attachmentType).getUploadToken();
     }
 }

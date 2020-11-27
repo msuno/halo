@@ -4,6 +4,8 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.DeleteObjectsRequest;
 import com.aliyun.oss.model.PutObjectResult;
+import com.google.common.collect.Maps;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +22,8 @@ import run.halo.app.utils.FilenameUtils;
 import run.halo.app.utils.ImageUtils;
 
 import javax.imageio.ImageReader;
+
+import java.util.Map;
 import java.util.Objects;
 
 import static run.halo.app.model.support.HaloConst.URL_SEPARATOR;
@@ -155,5 +159,9 @@ public class AliOssFileHandler implements FileHandler {
     public AttachmentType getAttachmentType() {
         return AttachmentType.ALIOSS;
     }
-
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        return Maps.newHashMap();
+    }
 }

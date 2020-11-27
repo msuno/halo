@@ -5,6 +5,8 @@ import com.baidubce.auth.DefaultBceCredentials;
 import com.baidubce.services.bos.BosClient;
 import com.baidubce.services.bos.BosClientConfiguration;
 import com.baidubce.services.bos.model.PutObjectResponse;
+import com.google.common.collect.Maps;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
@@ -20,6 +22,8 @@ import run.halo.app.utils.FilenameUtils;
 import run.halo.app.utils.ImageUtils;
 
 import javax.imageio.ImageReader;
+
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -135,5 +139,10 @@ public class BaiduBosFileHandler implements FileHandler {
     @Override
     public AttachmentType getAttachmentType() {
         return AttachmentType.BAIDUBOS;
+    }
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        return Maps.newHashMap();
     }
 }

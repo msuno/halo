@@ -12,6 +12,8 @@ import run.halo.app.model.support.UploadResult;
 
 import static run.halo.app.model.support.HaloConst.FILE_SEPARATOR;
 
+import java.util.Map;
+
 /**
  * File handler interface.
  *
@@ -79,4 +81,10 @@ public interface FileHandler {
      * @return attachment type
      */
     AttachmentType getAttachmentType();
+    
+    /**
+     * Get OSS upload token
+     * @return  token message
+     */
+    Map<String, String> getUploadToken();
 }

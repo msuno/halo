@@ -1,5 +1,6 @@
 package run.halo.app.handler.file;
 
+import com.google.common.collect.Maps;
 import com.upyun.RestManager;
 import com.upyun.UpException;
 import lombok.extern.slf4j.Slf4j;
@@ -135,5 +136,10 @@ public class UpOssFileHandler implements FileHandler {
     @Override
     public AttachmentType getAttachmentType() {
         return AttachmentType.UPOSS;
+    }
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        return Maps.newHashMap();
     }
 }

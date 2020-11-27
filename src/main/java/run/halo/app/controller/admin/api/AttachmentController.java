@@ -12,11 +12,13 @@ import run.halo.app.model.entity.Attachment;
 import run.halo.app.model.enums.AttachmentType;
 import run.halo.app.model.params.AttachmentParam;
 import run.halo.app.model.params.AttachmentQuery;
+import run.halo.app.model.support.UploadResult;
 import run.halo.app.service.AttachmentService;
 
 import javax.validation.Valid;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;
 
@@ -95,6 +97,19 @@ public class AttachmentController {
     @ApiOperation("Lists all of media types")
     public List<String> listMediaTypes() {
         return attachmentService.listAllMediaType();
+    }
+    
+    
+    @PostMapping("token")
+    @ApiOperation("Get upload token")
+    public Map<String, String> uploadToken() {
+        return attachmentService.getUploadToken();
+    }
+    
+    @PostMapping("save")
+    @ApiOperation("Save upload attachment")
+    public AttachmentDTO save(UploadResult uploadResult) {
+        return attachmentService.convertToDto(attachmentService.saveUpload(uploadResult));
     }
 
     @GetMapping("types")

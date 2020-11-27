@@ -7,6 +7,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import java.util.Optional;
 
 /**
@@ -28,9 +30,22 @@ public class ServletUtils {
     @NonNull
     public static Optional<HttpServletRequest> getCurrentRequest() {
         return Optional.ofNullable(RequestContextHolder.getRequestAttributes())
+            .filter(requestAttributes -> requestAttributes instanceof ServletRequestAttributes)
+            .map(requestAttributes -> (ServletRequestAttributes) requestAttributes)
+            .map(ServletRequestAttributes::getRequest);
+    }
+    
+    /**
+     * Gets current http servlet request.
+     *
+     * @return an optional http servlet request
+     */
+    @NonNull
+    public static Optional<HttpServletResponse> getCurrentResponse() {
+        return Optional.ofNullable(RequestContextHolder.getRequestAttributes())
                 .filter(requestAttributes -> requestAttributes instanceof ServletRequestAttributes)
                 .map(requestAttributes -> (ServletRequestAttributes) requestAttributes)
-                .map(ServletRequestAttributes::getRequest);
+                .map(ServletRequestAttributes::getResponse);
     }
 
     /**

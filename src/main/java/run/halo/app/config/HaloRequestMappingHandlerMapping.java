@@ -1,6 +1,8 @@
 package run.halo.app.config;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
@@ -43,6 +45,9 @@ public class HaloRequestMappingHandlerMapping extends RequestMappingHandlerMappi
     protected HandlerMethod lookupHandlerMethod(String lookupPath, HttpServletRequest request) throws Exception {
         log.debug("Looking path: [{}]", lookupPath);
         for (String blackPattern : blackPatterns) {
+            if (lookupPath.endsWith("/index.html") && StringUtils.isNoneBlank(haloProperties.getVersion())) {
+                return super.lookupHandlerMethod(lookupPath, request);
+            }
             if (this.pathMatcher.match(blackPattern, lookupPath)) {
                 log.debug("Skipped path [{}] with pattern: [{}]", lookupPath, blackPattern);
                 return null;

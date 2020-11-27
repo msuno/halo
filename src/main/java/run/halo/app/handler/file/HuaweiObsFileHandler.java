@@ -1,5 +1,6 @@
 package run.halo.app.handler.file;
 
+import com.google.common.collect.Maps;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import run.halo.app.utils.ImageUtils;
 
 import javax.imageio.ImageReader;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 
 import static run.halo.app.model.support.HaloConst.URL_SEPARATOR;
@@ -161,5 +163,9 @@ public class HuaweiObsFileHandler implements FileHandler {
     public AttachmentType getAttachmentType() {
         return AttachmentType.HUAWEIOBS;
     }
-
+    
+    @Override
+    public Map<String, String> getUploadToken() {
+        return Maps.newHashMap();
+    }
 }
