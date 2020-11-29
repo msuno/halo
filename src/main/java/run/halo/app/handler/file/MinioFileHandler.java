@@ -1,6 +1,5 @@
 package run.halo.app.handler.file;
 
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
@@ -146,29 +145,27 @@ public class MinioFileHandler implements FileHandler {
         String accessSecret = optionService.getByPropertyOfNonNull(MinioProperties.ACCESS_SECRET).toString();
         String bucketName = optionService.getByPropertyOfNonNull(MinioProperties.BUCKET_NAME).toString();
         String source = optionService.getByPropertyOrDefault(MinioProperties.SOURCE, String.class, "");
-    
         endpoint = StringUtils.appendIfMissing(endpoint, HaloConst.URL_SEPARATOR);
-    
-        MinioClient minioClient = MinioClient.builder()
-                .endpoint(endpoint)
-                .credentials(accessKey, accessSecret)
-                .build();
+        StringBuilder upFilePath = new StringBuilder();
+        if (StringUtils.isNotEmpty(source)) {
+            upFilePath.append(source).append(HaloConst.URL_SEPARATOR);
+        }
+        upFilePath.append(DateUtil.format(new Date(), "yyyyMMddHHmmss")).append(HaloConst.URL_SEPARATOR);
+
+        StringBuilder host = new StringBuilder(endpoint).append(bucketName);
+
+        String filePath = upFilePath.toString();
         Map<String, String> result = new HashMap<>();
         try {
-            String basename = FilenameUtils.getBasename(Objects.requireNonNull(DateUtil.format(new Date(), "yyyyMMdd")));
-            String timestamp = String.valueOf(System.currentTimeMillis());
-            String upFilePath = StringUtils.join(StringUtils.isNotBlank(source) ? source + HaloConst.URL_SEPARATOR : "",
-                    basename, "_", timestamp);
-            String filePath = StringUtils.join(endpoint, bucketName, HaloConst.URL_SEPARATOR, upFilePath);
-            String host = StringUtils.join(endpoint, bucketName);
-            PostPolicy policy = new PostPolicy(bucketName, filePath, true, ZonedDateTime.now(ZoneOffset.UTC).plusHours(1));
+            MinioClient minioClient = MinioClient.builder().endpoint(endpoint).credentials(accessKey, accessSecret).build();
+            PostPolicy policy = new PostPolicy(bucketName, filePath, true, ZonedDateTime.now().plusHours(1));
             result.putAll(minioClient.presignedPostPolicy(policy));
-            result.put("basePath", upFilePath);
-            result.put("host", host);
-            return result;
         } catch (Exception e) {
-            log.error("upload file to MINIO failed", e);
-            throw new FileOperationException("获取 MinIO token 失败 ", e).setErrorData(e.getMessage());
+            e.printStackTrace();
         }
+
+        result.put("basePath", filePath);
+        result.put("host", host.toString());
+        return result;
     }
 }

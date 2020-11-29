@@ -1,7 +1,6 @@
 package run.halo.app.handler.file;
 
 
-import com.google.common.collect.Maps;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;

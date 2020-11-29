@@ -1,10 +1,14 @@
 package run.halo.app.handler.file;
 
-import com.google.common.collect.Maps;
 import com.upyun.RestManager;
 import com.upyun.UpException;
+
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.digest.HmacAlgorithms;
+import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -21,6 +25,9 @@ import run.halo.app.utils.ImageUtils;
 
 import javax.imageio.ImageReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -140,6 +147,29 @@ public class UpOssFileHandler implements FileHandler {
     
     @Override
     public Map<String, String> getUploadToken() {
-        return Maps.newHashMap();
+        String source = optionService.getByPropertyOfNonNull(UpOssProperties.OSS_SOURCE).toString();
+        String password = optionService.getByPropertyOfNonNull(UpOssProperties.OSS_PASSWORD).toString();
+        String bucket = optionService.getByPropertyOfNonNull(UpOssProperties.OSS_BUCKET).toString();
+        String operator = optionService.getByPropertyOfNonNull(UpOssProperties.OSS_OPERATOR).toString();
+        String protocol = optionService.getByPropertyOfNonNull(UpOssProperties.OSS_PROTOCOL).toString();
+        String domain = optionService.getByPropertyOfNonNull(UpOssProperties.OSS_DOMAIN).toString();
+
+        String pwdMd5 = DigestUtils.md5DigestAsHex(password.getBytes(Charset.defaultCharset()));
+        String host = protocol + StringUtils.removeEnd(domain, "/");
+
+        ZonedDateTime utc = ZonedDateTime.now(ZoneOffset.UTC);
+        Long startTime = utc.toEpochSecond();
+        Long endTime = startTime + 60 * 60;
+        String saveKey = source + "/{year}{mon}{day}/{hour}{min}{sec}_{filename}{.suffix}";
+        String policy = "{\"bucket\":\"" + bucket + "\",\"save-key\":\"" + saveKey + "\",\"expiration\":" + endTime + "}";
+        String base64Policy = Base64.encodeBase64String(policy.getBytes());
+        byte[] signByte = new HmacUtils(HmacAlgorithms.HMAC_SHA_1, pwdMd5.getBytes())
+            .hmac(String.format("POST&/%s&%s", bucket, base64Policy));
+        Map<String, String> result = new HashMap<>();
+        result.put("bucket", bucket);
+        result.put("policy", base64Policy);
+        result.put("signature", String.format("UPYUN %s:%s", operator, Base64.encodeBase64String(signByte)));
+        result.put("host", host);
+        return result;
     }
 }

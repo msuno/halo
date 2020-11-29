@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import lombok.extern.slf4j.Slf4j;
 import run.halo.app.exception.AlreadyExistsException;
+import run.halo.app.handler.file.FileHandler;
 import run.halo.app.handler.file.FileHandlers;
 import run.halo.app.model.dto.AttachmentDTO;
 import run.halo.app.model.entity.Attachment;
@@ -190,7 +191,11 @@ public class AttachmentServiceImpl extends AbstractCrudService<Attachment, Integ
 
     @Override
     public List<AttachmentType> listAllType() {
-        return attachmentRepository.findAllType();
+        AttachmentType type = getAttachmentType();
+        List<AttachmentType> list = attachmentRepository.findAllType();
+        list.remove(type);
+        list.add(0, type);
+        return list;
     }
 
     @Override
@@ -270,7 +275,13 @@ public class AttachmentServiceImpl extends AbstractCrudService<Attachment, Integ
         attachment.setType(attachmentType);
     
         log.debug("Creating attachment: [{}]", attachment);
-        
+
+        if (StringUtils.isBlank(attachment.getThumbPath())) {
+            if (FileHandler.isImageType(attachment.getMediaType())) {
+                attachment.setThumbPath(attachment.getPath());
+            }
+        }
+
         return create(attachment);
     }
 }
